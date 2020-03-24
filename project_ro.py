@@ -1,5 +1,6 @@
 """
 This script gets the xls files from my ply and plots them into a good looking graph
+by Sinai Sacharen
 """
 
 import pandas as pd
@@ -7,6 +8,7 @@ import numpy as np
 import seaborn as sns
 import matplotlib.pyplot as plt
 import os
+from datetime import datetime
 
 plt.style.use('fivethirtyeight')
 
@@ -16,7 +18,7 @@ if os.path.exists(folder_path):
 else:
     print('cant find path')
 
-xls = pd.ExcelFile(folder_path + 'excel_16_03.xlsx')
+xls = pd.ExcelFile(folder_path + 'excel_2020-03-23_102407.xlsx')
 df1 = pd.read_excel(xls, 'RO_Shafdan_1')
 df2 = pd.read_excel(xls, 'RO_Shafdan_2')
 
@@ -25,19 +27,29 @@ head_list = list(df1)
 for col in head_list:
     if col not in ['Time', 'Pressure  - Bar', 'Flow rate - gr/l']:
         df1.drop([col], axis=1, inplace=True)
-df1['sys'] = df1['Time'].apply(lambda x: 'sys_1')
-df1.rename(columns={"Pressure  - Bar": "Pressure [bar]", "Flow rate - gr/l": "Flow rate [ml/hr]"}, inplace=True)
-df1['Time'] = df1['Time'].values.astype(float)
 
+df1.rename(columns={"Pressure  - Bar": "Pressure [bar]", "Flow rate - gr/l": "Flow rate [ml/hr]"}, inplace=True)
+#df1['Time'] = df1['Time'].apply(lambda x: datetime.datetime.fromtimestamp(x))
+# calculating hour mean for flow and pressure
+df1.set_index('Time',inplace=True,drop=True)
+df1_mean = df1.resample('H').mean()
+df1_mean.reset_index(inplace=True)
+df1_mean['sys'] = df1_mean['Time'].apply(lambda x: 'sys_1')
+df1 = df1_mean
+df1.drop(df1[df1['Flow rate [ml/hr]'] >120].index, inplace=True)
 
 # clean df2
 head_list = list(df2)
 for col in head_list:
     if col not in ['Time', 'Pressure - Bar', 'Flow rate - gr/l']:
         df2.drop([col], axis=1, inplace=True)
-df2['sys'] = df2['Time'].apply(lambda x: 'sys_2')
 df2.rename(columns={"Pressure - Bar": "Pressure [bar]", "Flow rate - gr/l": "Flow rate [ml/hr]"}, inplace=True)
-df2['Time'] = df2['Time'].values.astype(float)
+df2.set_index('Time',inplace=True,drop=True)
+df2_mean = df2.resample('H').mean()
+df2_mean.reset_index(inplace=True)
+df2_mean['sys'] = df2_mean['Time'].apply(lambda x: 'sys_2')
+df2 = df2_mean
+df2.drop(df2[df2['Flow rate [ml/hr]'] >120].index, inplace=True)
 
 
 # Plot the lines
